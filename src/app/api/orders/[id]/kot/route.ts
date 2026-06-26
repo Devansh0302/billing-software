@@ -31,19 +31,19 @@ export async function POST(
 
     // Count existing KOTs for this order
     const kotCount = await prisma.kOTTicket.count({ where: { order_id: id } });
-    const kot_number = `KOT-${(kotCount + 1).toString().padStart(2, '0')}`;
+    const kotNumber = `KOT-${(kotCount + 1).toString().padStart(2, '0')}`;
 
     // Create KOT ticket
     const kot = await prisma.kOTTicket.create({
       data: {
         order_id: id,
-        kot_number,
-        items: pendingItems.map(item => ({
+        kot_number: kotNumber,
+        items: JSON.stringify(pendingItems.map(item => ({
           name: item.menu_item.name,
           quantity: item.quantity,
           food_type: item.menu_item.food_type,
           notes: item.notes,
-        })),
+        }))),
       },
     });
 

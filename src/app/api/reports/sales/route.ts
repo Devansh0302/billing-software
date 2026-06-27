@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 // GET /api/reports/sales - Hourly revenue data
 export async function GET(req: NextRequest) {
   try {
-    const { searchParams } = new URL(req.url);
+    const searchParams = req.nextUrl.searchParams;
     const from = searchParams.get('from');
     const to = searchParams.get('to');
 

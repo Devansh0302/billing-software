@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 // GET /api/bills - Get all paid bills
 export async function GET(req: NextRequest) {
   try {
-    const { searchParams } = new URL(req.url);
+    const searchParams = req.nextUrl.searchParams;
     const search = searchParams.get('search') || '';
     const from = searchParams.get('from');
     const to = searchParams.get('to');

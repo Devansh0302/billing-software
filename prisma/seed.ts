@@ -134,120 +134,126 @@ async function main() {
   console.log('✅ 3 staff members created');
 
   // ─── Sample Orders (on occupied tables) ──────────
-  const tables = await prisma.table.findMany({ where: { status: 'OCCUPIED' } });
-  const adminStaff = await prisma.staff.findFirst({ where: { role: 'ADMIN' } });
-  const allMenuItems = await prisma.menuItem.findMany();
+  const existingOrdersCount = await prisma.order.count();
+  
+  if (existingOrdersCount === 0) {
+    const tables = await prisma.table.findMany({ where: { status: 'OCCUPIED' } });
+    const adminStaff = await prisma.staff.findFirst({ where: { role: 'ADMIN' } });
+    const allMenuItems = await prisma.menuItem.findMany();
 
-  if (adminStaff) {
-    // T1: 2 guests, ~38 min ago, ₹680 order
-    const t1 = tables.find(t => t.table_number === 'T1');
-    if (t1) {
-      const order1 = await prisma.order.create({
-        data: {
-          table_id: t1.id,
-          staff_id: adminStaff.id,
-          invoice_number: `SR-${new Date().getFullYear()}-0001`,
-          guest_count: 2,
-          status: 'OPEN',
-          subtotal: 646.15,
-          cgst_amount: 16.15,
-          sgst_amount: 16.15,
-          total_amount: 680,
-          created_at: new Date(Date.now() - 38 * 60 * 1000),
-        },
-      });
-      // Add items: Paneer Tikka (220) + Butter Chicken (320) + Butter Naan x2 (100) + Masala Chai (60) = 700... adjust
-      const pt = allMenuItems.find(i => i.name === 'Paneer Tikka')!;
-      const bc = allMenuItems.find(i => i.name === 'Butter Chicken')!;
-      const bn = allMenuItems.find(i => i.name === 'Butter Naan')!;
-      await prisma.orderItem.createMany({
-        data: [
-          { order_id: order1.id, menu_item_id: pt.id, quantity: 1, unit_price: pt.price, total_price: pt.price },
-          { order_id: order1.id, menu_item_id: bc.id, quantity: 1, unit_price: bc.price, total_price: bc.price },
-          { order_id: order1.id, menu_item_id: bn.id, quantity: 2, unit_price: bn.price, total_price: bn.price * 2 },
-          { order_id: order1.id, menu_item_id: allMenuItems.find(i => i.name === 'Masala Chai')!.id, quantity: 1, unit_price: 60, total_price: 60 },
-        ],
-      });
-    }
+    if (adminStaff) {
+      // T1: 2 guests, ~38 min ago, ₹680 order
+      const t1 = tables.find(t => t.table_number === 'T1');
+      if (t1) {
+        const order1 = await prisma.order.create({
+          data: {
+            table_id: t1.id,
+            staff_id: adminStaff.id,
+            invoice_number: `SR-${new Date().getFullYear()}-0001`,
+            guest_count: 2,
+            status: 'OPEN',
+            subtotal: 646.15,
+            cgst_amount: 16.15,
+            sgst_amount: 16.15,
+            total_amount: 680,
+            created_at: new Date(Date.now() - 38 * 60 * 1000),
+          },
+        });
+        // Add items: Paneer Tikka (220) + Butter Chicken (320) + Butter Naan x2 (100) + Masala Chai (60) = 700... adjust
+        const pt = allMenuItems.find(i => i.name === 'Paneer Tikka')!;
+        const bc = allMenuItems.find(i => i.name === 'Butter Chicken')!;
+        const bn = allMenuItems.find(i => i.name === 'Butter Naan')!;
+        await prisma.orderItem.createMany({
+          data: [
+            { order_id: order1.id, menu_item_id: pt.id, quantity: 1, unit_price: pt.price, total_price: pt.price },
+            { order_id: order1.id, menu_item_id: bc.id, quantity: 1, unit_price: bc.price, total_price: bc.price },
+            { order_id: order1.id, menu_item_id: bn.id, quantity: 2, unit_price: bn.price, total_price: bn.price * 2 },
+            { order_id: order1.id, menu_item_id: allMenuItems.find(i => i.name === 'Masala Chai')!.id, quantity: 1, unit_price: 60, total_price: 60 },
+          ],
+        });
+      }
 
-    // T3: 4 guests, ~15 min ago, ₹1320 order
-    const t3 = tables.find(t => t.table_number === 'T3');
-    if (t3) {
-      const order3 = await prisma.order.create({
-        data: {
-          table_id: t3.id,
-          staff_id: adminStaff.id,
-          invoice_number: `SR-${new Date().getFullYear()}-0002`,
-          guest_count: 4,
-          status: 'OPEN',
-          subtotal: 1254.55,
-          cgst_amount: 31.36,
-          sgst_amount: 31.36,
-          total_amount: 1320,
-          created_at: new Date(Date.now() - 15 * 60 * 1000),
-        },
-      });
-      const dm = allMenuItems.find(i => i.name === 'Dal Makhani')!;
-      const mrj = allMenuItems.find(i => i.name === 'Mutton Rogan Josh')!;
-      const cb = allMenuItems.find(i => i.name === 'Chicken Biryani')!;
-      const gn = allMenuItems.find(i => i.name === 'Garlic Naan')!;
-      const ml = allMenuItems.find(i => i.name === 'Mango Lassi')!;
-      await prisma.orderItem.createMany({
-        data: [
-          { order_id: order3.id, menu_item_id: dm.id, quantity: 1, unit_price: dm.price, total_price: dm.price },
-          { order_id: order3.id, menu_item_id: mrj.id, quantity: 1, unit_price: mrj.price, total_price: mrj.price },
-          { order_id: order3.id, menu_item_id: cb.id, quantity: 1, unit_price: cb.price, total_price: cb.price },
-          { order_id: order3.id, menu_item_id: gn.id, quantity: 3, unit_price: gn.price, total_price: gn.price * 3 },
-          { order_id: order3.id, menu_item_id: ml.id, quantity: 2, unit_price: ml.price, total_price: ml.price * 2 },
-        ],
-      });
-    }
+      // T3: 4 guests, ~15 min ago, ₹1320 order
+      const t3 = tables.find(t => t.table_number === 'T3');
+      if (t3) {
+        const order3 = await prisma.order.create({
+          data: {
+            table_id: t3.id,
+            staff_id: adminStaff.id,
+            invoice_number: `SR-${new Date().getFullYear()}-0002`,
+            guest_count: 4,
+            status: 'OPEN',
+            subtotal: 1254.55,
+            cgst_amount: 31.36,
+            sgst_amount: 31.36,
+            total_amount: 1320,
+            created_at: new Date(Date.now() - 15 * 60 * 1000),
+          },
+        });
+        const dm = allMenuItems.find(i => i.name === 'Dal Makhani')!;
+        const mrj = allMenuItems.find(i => i.name === 'Mutton Rogan Josh')!;
+        const cb = allMenuItems.find(i => i.name === 'Chicken Biryani')!;
+        const gn = allMenuItems.find(i => i.name === 'Garlic Naan')!;
+        const ml = allMenuItems.find(i => i.name === 'Mango Lassi')!;
+        await prisma.orderItem.createMany({
+          data: [
+            { order_id: order3.id, menu_item_id: dm.id, quantity: 1, unit_price: dm.price, total_price: dm.price },
+            { order_id: order3.id, menu_item_id: mrj.id, quantity: 1, unit_price: mrj.price, total_price: mrj.price },
+            { order_id: order3.id, menu_item_id: cb.id, quantity: 1, unit_price: cb.price, total_price: cb.price },
+            { order_id: order3.id, menu_item_id: gn.id, quantity: 3, unit_price: gn.price, total_price: gn.price * 3 },
+            { order_id: order3.id, menu_item_id: ml.id, quantity: 2, unit_price: ml.price, total_price: ml.price * 2 },
+          ],
+        });
+      }
 
-    // T5: 1 guest, ~52 min ago, ₹340 order
-    const t5 = tables.find(t => t.table_number === 'T5');
-    if (t5) {
-      const order5 = await prisma.order.create({
-        data: {
-          table_id: t5.id,
-          staff_id: adminStaff.id,
-          invoice_number: `SR-${new Date().getFullYear()}-0003`,
-          guest_count: 1,
-          status: 'OPEN',
-          subtotal: 323.08,
-          cgst_amount: 8.08,
-          sgst_amount: 8.08,
-          total_amount: 340,
-          created_at: new Date(Date.now() - 52 * 60 * 1000),
-        },
-      });
-      const chb = allMenuItems.find(i => i.name === 'Chicken Biryani')!;
-      await prisma.orderItem.createMany({
-        data: [
-          { order_id: order5.id, menu_item_id: chb.id, quantity: 1, unit_price: chb.price, total_price: chb.price },
-        ],
-      });
-    }
+      // T5: 1 guest, ~52 min ago, ₹340 order
+      const t5 = tables.find(t => t.table_number === 'T5');
+      if (t5) {
+        const order5 = await prisma.order.create({
+          data: {
+            table_id: t5.id,
+            staff_id: adminStaff.id,
+            invoice_number: `SR-${new Date().getFullYear()}-0003`,
+            guest_count: 1,
+            status: 'OPEN',
+            subtotal: 323.08,
+            cgst_amount: 8.08,
+            sgst_amount: 8.08,
+            total_amount: 340,
+            created_at: new Date(Date.now() - 52 * 60 * 1000),
+          },
+        });
+        const chb = allMenuItems.find(i => i.name === 'Chicken Biryani')!;
+        await prisma.orderItem.createMany({
+          data: [
+            { order_id: order5.id, menu_item_id: chb.id, quantity: 1, unit_price: chb.price, total_price: chb.price },
+          ],
+        });
+      }
 
-    // T8: 6 guests, ~8 min ago, no items yet
-    const t8 = tables.find(t => t.table_number === 'T8');
-    if (t8) {
-      await prisma.order.create({
-        data: {
-          table_id: t8.id,
-          staff_id: adminStaff.id,
-          invoice_number: `SR-${new Date().getFullYear()}-0004`,
-          guest_count: 6,
-          status: 'OPEN',
-          subtotal: 0,
-          cgst_amount: 0,
-          sgst_amount: 0,
-          total_amount: 0,
-          created_at: new Date(Date.now() - 8 * 60 * 1000),
-        },
-      });
+      // T8: 6 guests, ~8 min ago, no items yet
+      const t8 = tables.find(t => t.table_number === 'T8');
+      if (t8) {
+        await prisma.order.create({
+          data: {
+            table_id: t8.id,
+            staff_id: adminStaff.id,
+            invoice_number: `SR-${new Date().getFullYear()}-0004`,
+            guest_count: 6,
+            status: 'OPEN',
+            subtotal: 0,
+            cgst_amount: 0,
+            sgst_amount: 0,
+            total_amount: 0,
+            created_at: new Date(Date.now() - 8 * 60 * 1000),
+          },
+        });
+      }
     }
+    console.log('✅ 4 sample orders created on occupied tables');
+  } else {
+    console.log('✅ Orders already exist, skipping sample orders creation');
   }
-  console.log('✅ 4 sample orders created on occupied tables');
 
   console.log('\n🎉 Seed completed successfully!');
 }

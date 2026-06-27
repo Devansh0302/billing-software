@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
-import { ShieldCheck, UserPlus, Lock } from 'lucide-react';
+import { ShieldCheck, UserPlus, Lock, X } from 'lucide-react';
 
 export default function StaffPage() {
   const { data: session } = useSession();
@@ -44,7 +44,8 @@ function StaffManagement() {
   const [staff, setStaff] = useState<any[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
 
-  useEffect(() => { fetch('/api/staff').then(r => r.json()).then(setStaff).catch(() => {}); }, []);
+  const fetchStaff = () => { fetch('/api/staff').then(r => r.json()).then(setStaff).catch(() => {}); };
+  useEffect(() => { fetchStaff(); }, []);
 
   const handleToggleActive = async (id: string, isActive: boolean) => {
     await fetch('/api/staff', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, is_active: !isActive }) });
@@ -105,6 +106,79 @@ function StaffManagement() {
             })}
           </tbody>
         </table>
+      </div>
+      {showAddModal && <AddStaffModal onClose={() => setShowAddModal(false)} onAdded={fetchStaff} />}
+    </div>
+  );
+}
+
+function AddStaffModal({ onClose, onAdded }: { onClose: () => void; onAdded: () => void }) {
+  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'WAITER', pin: '' });
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSave = async () => {
+    if (!form.name || !form.email || !form.password) { toast.error('Fill required fields'); return; }
+    setIsLoading(true);
+    try {
+      const res = await fetch('/api/staff', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      if (res.ok) {
+        toast.success(`Staff member added`);
+        onAdded();
+        onClose();
+      } else {
+        const data = await res.json();
+        toast.error(data.error || 'Failed to add staff');
+      }
+    } catch { toast.error('Error adding staff'); }
+    finally { setIsLoading(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+      <div className="w-full max-w-md rounded-xl p-6" style={{ backgroundColor: '#FFFFFF' }}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-base font-bold" style={{ fontFamily: 'var(--font-heading)' }}>Add Staff Member</h3>
+          <button onClick={onClose} className="cursor-pointer"><X className="w-4 h-4" style={{ color: '#6B7280' }} /></button>
+        </div>
+        <div className="space-y-4">
+          <div>
+            <label className="text-xs font-medium mb-1 block" style={{ color: '#6B7280' }}>Name *</label>
+            <input value={form.name} onChange={(e) => setForm({...form, name: e.target.value})} placeholder="Full Name" className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={{ border: '1px solid #E5E7EB' }} />
+          </div>
+          <div>
+            <label className="text-xs font-medium mb-1 block" style={{ color: '#6B7280' }}>Email *</label>
+            <input type="email" value={form.email} onChange={(e) => setForm({...form, email: e.target.value})} placeholder="Email Address" className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={{ border: '1px solid #E5E7EB' }} />
+          </div>
+          <div>
+            <label className="text-xs font-medium mb-1 block" style={{ color: '#6B7280' }}>Password *</label>
+            <input type="password" value={form.password} onChange={(e) => setForm({...form, password: e.target.value})} placeholder="Password" className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={{ border: '1px solid #E5E7EB' }} />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-medium mb-1 block" style={{ color: '#6B7280' }}>Role</label>
+              <select value={form.role} onChange={(e) => setForm({...form, role: e.target.value})} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={{ border: '1px solid #E5E7EB' }}>
+                <option value="WAITER">Waiter</option>
+                <option value="CASHIER">Cashier</option>
+                <option value="KITCHEN">Kitchen</option>
+                <option value="ADMIN">Admin</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-medium mb-1 block" style={{ color: '#6B7280' }}>PIN (4-digits)</label>
+              <input value={form.pin} onChange={(e) => setForm({...form, pin: e.target.value})} placeholder="e.g. 1234" maxLength={4} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={{ border: '1px solid #E5E7EB' }} />
+            </div>
+          </div>
+        </div>
+        <div className="mt-6 flex gap-3">
+          <button onClick={onClose} className="flex-1 py-2 rounded-lg text-sm font-semibold cursor-pointer" style={{ backgroundColor: '#F3F4F6', color: '#4B5563' }}>Cancel</button>
+          <button onClick={handleSave} disabled={isLoading} className="flex-1 py-2 rounded-lg text-sm font-semibold text-white cursor-pointer disabled:opacity-50" style={{ backgroundColor: '#10B981' }}>
+            {isLoading ? 'Saving...' : 'Save Staff'}
+          </button>
+        </div>
       </div>
     </div>
   );
